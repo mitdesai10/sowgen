@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import axios from 'axios';
+import API_BASE from '../apiBase';
 
 const SECTION_ORDER = [
   'Executive Summary',
@@ -170,7 +171,7 @@ export default function Step3Preview({ sow, clientName, companyName, onRegenerat
     try {
       const sowPayload = { ...sections, verification: sow.verification };
       const response = await axios.post(
-        '/api/generate-docx',
+        `${API_BASE}/api/generate-docx`,
         {
           sow: sowPayload,
           clientName,

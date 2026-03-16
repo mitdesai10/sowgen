@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import axios from 'axios';
+import API_BASE from '../apiBase';
 
 // ── Small helpers ──────────────────────────────────────────────────────────────
 
@@ -69,12 +70,12 @@ function UploadZone({ onFileProcessed, onError, onLoadingChange }) {
       if (isAudio) {
         setLoadingMsg('Transcribing audio with Whisper AI...');
         formData.append('audio', file);
-        const { data } = await axios.post('/api/transcribe', formData);
+        const { data } = await axios.post(`${API_BASE}/api/transcribe`, formData);
         onFileProcessed(data.transcript, file.name);
       } else {
         setLoadingMsg('Extracting text from file...');
         formData.append('file', file);
-        const { data } = await axios.post('/api/parse-file', formData);
+        const { data } = await axios.post(`${API_BASE}/api/parse-file`, formData);
         onFileProcessed(data.text, file.name);
       }
     } catch (err) {
@@ -271,7 +272,7 @@ export default function Step1Input({ onGenerating, onSowGenerated, onGenerationF
     setUrlError('');
     setUrlResult('');
     try {
-      const { data } = await axios.post('/api/fetch-zoom', { url: zoomUrl.trim() });
+      const { data } = await axios.post(`${API_BASE}/api/fetch-zoom`, { url: zoomUrl.trim() });
       if (data.error) {
         setUrlError(data.message);
       } else {
@@ -338,7 +339,7 @@ export default function Step1Input({ onGenerating, onSowGenerated, onGenerationF
     onGenerating(); // Tell App to show Step 2 loading screen
 
     try {
-      const { data } = await axios.post('/api/generate-sow', {
+      const { data } = await axios.post(`${API_BASE}/api/generate-sow`, {
         transcripts,
         clientName: clientName.trim(),
         projectName: projectName.trim(),
