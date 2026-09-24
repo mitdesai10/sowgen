@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import axios from 'axios';
 import API_BASE from '../apiBase';
 
@@ -148,7 +148,7 @@ function Spinner({ size = 4 }) {
   );
 }
 
-export default function Step3Preview({ sow, clientName, companyName, onRegenerate }) {
+export default function Step3Preview({ sow, clientName, companyName, projectName, onRegenerate }) {
   // Build editable state from sow prop
   const [sections, setSections] = useState(() => {
     const result = {};
@@ -158,39 +158,84 @@ export default function Step3Preview({ sow, clientName, companyName, onRegenerat
     return result;
   });
 
-  const [downloading, setDownloading] = useState(false);
+  const [downloading, setDownloading] = useState('');
   const [downloadError, setDownloadError] = useState('');
+  const [templates, setTemplates] = useState([]);
+  const [templateId, setTemplateId] = useState(
+    () => localStorage.getItem('sowgen.templateId') || 'ciberspring'
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    axios
+      .get(`${API_BASE}/api/templates`)
+      .then((res) => {
+        if (cancelled) return;
+        const list = res.data?.templates || [];
+        setTemplates(list);
+        // Fall back to the server default if a stale id is in localStorage.
+        if (list.length && !list.some((t) => t.id === templateId)) {
+          setTemplateId(res.data.default || list[0].id);
+        }
+      })
+      .catch(() => {
+        // Picker stays hidden; export still works on the server default.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  function handleTemplateChange(id) {
+    setTemplateId(id);
+    localStorage.setItem('sowgen.templateId', id);
+  }
 
   function handleSectionChange(name, value) {
     setSections((prev) => ({ ...prev, [name]: value }));
   }
 
-  async function handleDownload() {
-    setDownloading(true);
+  const FORMATS = {
+    docx: {
+      path: '/api/generate-docx',
+      ext: 'docx',
+      mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      errorLabel: 'Word document',
+    },
+    pdf: {
+      path: '/api/generate-pdf',
+      ext: 'pdf',
+      mime: 'application/pdf',
+      errorLabel: 'PDF',
+    },
+  };
+
+  async function handleDownload(format) {
+    const cfg = FORMATS[format];
+    setDownloading(format);
     setDownloadError('');
     try {
       const sowPayload = { ...sections, verification: sow.verification };
       const response = await axios.post(
-        `${API_BASE}/api/generate-docx`,
+        `${API_BASE}${cfg.path}`,
         {
           sow: sowPayload,
           clientName,
           companyName,
+          projectName,
+          templateId,
         },
         { responseType: 'blob' }
       );
 
-      // Trigger file download
-      const blob = new Blob([response.data], {
-        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      });
+      const blob = new Blob([response.data], { type: cfg.mime });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
 
-      // Try to get filename from Content-Disposition header
+      // Prefer the filename the server chose.
       const disposition = response.headers['content-disposition'];
-      let filename = `SOW_${(clientName || 'Client').replace(/\s+/g, '_')}.docx`;
+      let filename = `SOW_${(clientName || 'Client').replace(/\s+/g, '_')}.${cfg.ext}`;
       if (disposition) {
         const match = disposition.match(/filename="?([^"]+)"?/);
         if (match) filename = match[1];
@@ -202,10 +247,10 @@ export default function Step3Preview({ sow, clientName, companyName, onRegenerat
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      setDownloadError('Failed to generate Word document. Please try again.');
+      setDownloadError(`Failed to generate ${cfg.errorLabel}. Please try again.`);
       console.error('Download error:', err);
     } finally {
-      setDownloading(false);
+      setDownloading('');
     }
   }
 
@@ -263,36 +308,106 @@ export default function Step3Preview({ sow, clientName, companyName, onRegenerat
       {/* ── Sidebar ────────────────────────────────────────────────────── */}
       <div className="lg:col-span-1">
         <div className="sticky top-6 space-y-4">
-          {/* Download button */}
+          {/* Export */}
           <div className="card">
             <h3 className="text-sm font-bold text-navy-800 mb-3">Export</h3>
 
-            <button
-              onClick={handleDownload}
-              disabled={downloading}
-              className="w-full btn-primary flex items-center justify-center gap-2 py-3"
-            >
-              {downloading ? (
-                <>
-                  <Spinner size={4} />
-                  <span>Generating...</span>
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+            {templates.length > 0 && (
+              <div className="mb-4">
+                <label
+                  htmlFor="sow-template"
+                  className="block text-xs font-semibold text-gray-700 mb-1.5"
+                >
+                  Template
+                </label>
+                <div className="relative">
+                  <span
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border border-black/10"
+                    style={{
+                      backgroundColor:
+                        templates.find((t) => t.id === templateId)?.swatch || '#1e2a4a',
+                    }}
+                    aria-hidden="true"
+                  />
+                  <select
+                    id="sow-template"
+                    value={templateId}
+                    onChange={(e) => handleTemplateChange(e.target.value)}
+                    className="w-full appearance-none rounded-md border border-gray-300 bg-white
+                               pl-8 pr-8 py-2 text-sm font-medium text-gray-900
+                               focus:border-navy-600 focus:outline-none focus:ring-1 focus:ring-navy-600"
+                  >
+                    {templates.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.label}
+                      </option>
+                    ))}
+                  </select>
+                  <svg
+                    className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+                    fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
                   </svg>
-                  Download .docx
-                </>
-              )}
-            </button>
+                </div>
 
-            {downloadError && (
-              <p className="mt-2 text-xs text-red-600">{downloadError}</p>
+                {templates.find((t) => t.id === templateId)?.verified === false && (
+                  <p className="mt-1.5 text-xs text-amber-700">
+                    Placeholder styling. Colors and layout are not confirmed against a real
+                    {' '}{templates.find((t) => t.id === templateId)?.label} document yet.
+                  </p>
+                )}
+              </div>
             )}
 
+            <div className="space-y-2">
+              <button
+                onClick={() => handleDownload('pdf')}
+                disabled={!!downloading}
+                className="w-full btn-primary flex items-center justify-center gap-2 py-3 disabled:opacity-60"
+              >
+                {downloading === 'pdf' ? (
+                  <>
+                    <Spinner size={4} />
+                    <span>Generating...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                    </svg>
+                    Download PDF
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={() => handleDownload('docx')}
+                disabled={!!downloading}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-md
+                           border border-gray-300 bg-white text-sm font-semibold text-navy-800
+                           hover:bg-gray-50 disabled:opacity-60"
+              >
+                {downloading === 'docx' ? (
+                  <>
+                    <Spinner size={4} />
+                    <span>Generating...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                    </svg>
+                    Download .docx
+                  </>
+                )}
+              </button>
+            </div>
+
+            {downloadError && <p className="mt-2 text-xs text-red-600">{downloadError}</p>}
+
             <p className="text-xs text-gray-400 mt-2 text-center">
-              Professionally formatted Word document with cover page
+              Cover page, branded headings, and page numbers
             </p>
           </div>
 

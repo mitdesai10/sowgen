@@ -91,6 +91,7 @@ export default function App() {
             sow={sowData}
             clientName={formSnapshot?.clientName || ''}
             companyName={formSnapshot?.companyName || ''}
+            projectName={formSnapshot?.projectName || ''}
             onRegenerate={handleRegenerate}
           />
         )}
