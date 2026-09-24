@@ -92,6 +92,9 @@ export default function App() {
             clientName={formSnapshot?.clientName || ''}
             companyName={formSnapshot?.companyName || ''}
             projectName={formSnapshot?.projectName || ''}
+            budget={formSnapshot?.budget || ''}
+            timeline={formSnapshot?.timeline || ''}
+            contactName={formSnapshot?.contactName || ''}
             onRegenerate={handleRegenerate}
           />
         )}

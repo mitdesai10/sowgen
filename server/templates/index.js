@@ -88,6 +88,8 @@ const TEMPLATES = {
     fonts: { heading: 'Helvetica-Bold', body: 'Helvetica', italic: 'Helvetica-Oblique' },
     page: { margins: { top: 72, bottom: 72, left: 54, right: 54 } },
     sizes: { coverTitle: 24, heading: 14, body: 10, footer: 8 },
+    // Full document reproduction, not just a skin. See layouts/.
+    layout: 'ciberspring-managed-services',
     cover: { variant: 'centered', title: 'STATEMENT OF WORK' },
     headings: { uppercase: true, rule: true },
     footer: {

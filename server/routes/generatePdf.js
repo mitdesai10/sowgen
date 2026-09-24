@@ -6,6 +6,11 @@ const router = express.Router();
 
 const { getTemplate, DEFAULT_TEMPLATE_ID } = require('../templates');
 const { SECTION_ORDER, findSectionContent, formatDate } = require('../lib/sowSections');
+const { buildCiberspringContent } = require('../lib/ciberspringContent');
+
+const LAYOUTS = {
+  'ciberspring-managed-services': require('../templates/layouts/ciberspringManagedServices'),
+};
 
 const LOGO_DIR = path.join(__dirname, '..', 'assets', 'logos');
 
@@ -230,7 +235,10 @@ function drawFooters(doc, tpl, fonts, meta) {
 
 router.post('/', async (req, res) => {
   try {
-    const { sow, clientName, companyName, projectName, version, templateId } = req.body;
+    const {
+      sow, clientName, companyName, projectName, version, templateId,
+      budget, timeline, contactName,
+    } = req.body;
 
     if (!sow || typeof sow !== 'object') {
       return res.status(400).json({ error: 'sow object is required' });
@@ -243,6 +251,9 @@ router.post('/', async (req, res) => {
       companyName,
       projectName,
       version,
+      budget,
+      timeline,
+      contactName,
       formattedDate: formatDate(today),
     };
 
@@ -267,13 +278,21 @@ router.post('/', async (req, res) => {
 
     const fonts = resolveFonts(doc, tpl);
 
-    drawCover(doc, tpl, fonts, meta);
-    doc.addPage();
+    const layout = LAYOUTS[tpl.layout];
+    if (layout) {
+      // Template reproduces a specific client document rather than the
+      // generic section list.
+      const content = buildCiberspringContent(sow, meta, { logoPath: logoPath(tpl) });
+      layout(doc, tpl, fonts, meta, content);
+    } else {
+      drawCover(doc, tpl, fonts, meta);
+      doc.addPage();
 
-    SECTION_ORDER.forEach((name, i) => {
-      drawHeading(doc, tpl, fonts, name, i);
-      drawBody(doc, tpl, fonts, findSectionContent(sow, name));
-    });
+      SECTION_ORDER.forEach((name, i) => {
+        drawHeading(doc, tpl, fonts, name, i);
+        drawBody(doc, tpl, fonts, findSectionContent(sow, name));
+      });
+    }
 
     drawFooters(doc, tpl, fonts, meta);
     doc.end();
