@@ -248,6 +248,7 @@ export default function Step1Input({ onGenerating, onSowGenerated, onGenerationF
   const [clientName, setClientName] = useState('');
   const [projectName, setProjectName] = useState('');
   const [companyName, setCompanyName] = useState('');
+  const [contactName, setContactName] = useState('');
   const [budget, setBudget] = useState('');
   const [timeline, setTimeline] = useState('');
 
@@ -344,6 +345,7 @@ export default function Step1Input({ onGenerating, onSowGenerated, onGenerationF
         clientName: clientName.trim(),
         projectName: projectName.trim(),
         companyName: companyName.trim(),
+        contactName: contactName.trim(),
         budget: budget.trim(),
         timeline: timeline.trim(),
       });
@@ -352,6 +354,7 @@ export default function Step1Input({ onGenerating, onSowGenerated, onGenerationF
         clientName: clientName.trim(),
         projectName: projectName.trim(),
         companyName: companyName.trim(),
+        contactName: contactName.trim(),
         budget: budget.trim(),
         timeline: timeline.trim(),
       });
@@ -550,6 +553,19 @@ export default function Step1Input({ onGenerating, onSowGenerated, onGenerationF
               <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold mb-3">Optional Context</p>
 
               <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Client Contact
+                  </label>
+                  <input
+                    type="text"
+                    value={contactName}
+                    onChange={(e) => setContactName(e.target.value)}
+                    placeholder="e.g. Sarah Chen"
+                    className="input-field text-sm"
+                  />
+                </div>
+
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">
                     Estimated Budget

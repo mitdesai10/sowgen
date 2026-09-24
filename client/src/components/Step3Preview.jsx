@@ -148,7 +148,7 @@ function Spinner({ size = 4 }) {
   );
 }
 
-export default function Step3Preview({ sow, clientName, companyName, projectName, onRegenerate }) {
+export default function Step3Preview({ sow, clientName, companyName, projectName, budget, timeline, contactName, onRegenerate }) {
   // Build editable state from sow prop
   const [sections, setSections] = useState(() => {
     const result = {};
@@ -223,6 +223,9 @@ export default function Step3Preview({ sow, clientName, companyName, projectName
           clientName,
           companyName,
           projectName,
+          budget,
+          timeline,
+          contactName,
           templateId,
         },
         { responseType: 'blob' }
