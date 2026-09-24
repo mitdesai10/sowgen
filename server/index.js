@@ -28,6 +28,8 @@ app.use('/api/parse-file', require('./routes/parseFile'));
 app.use('/api/fetch-zoom', require('./routes/fetchZoom'));
 app.use('/api/generate-sow', require('./routes/generateSow'));
 app.use('/api/generate-docx', require('./routes/generateDocx'));
+app.use('/api/generate-pdf', require('./routes/generatePdf'));
+app.use('/api/templates', require('./routes/templates'));
 
 // Health check
 app.get('/api/health', (req, res) => {
